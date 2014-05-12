@@ -1,7 +1,7 @@
 %% Simulation FMCW Radar
 % Bachelorarbeit von Sebastian Müller
 
-% Lösche alle Variablen
+% LÖsche alle Variablen
 clear all
 
 % Lösche Konsole
