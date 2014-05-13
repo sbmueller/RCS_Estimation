@@ -7,7 +7,7 @@ function [ int ] = discrete_int( y, dx, max )
 %   Output:
 %   int:    integrated vector
 
-int = zeros(1, uint64(max));
+int = zeros(1, floor(max));
 temp = 0;
 for i=1:1:max
     temp = temp + y(:,i)*dx;
