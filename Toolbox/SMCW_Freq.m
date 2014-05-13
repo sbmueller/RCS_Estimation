@@ -1,30 +1,34 @@
-function [ f ] = SMCW_Freq( t, T, f_s0, B, N, K )
-%SMCW_Freq_alt Generiert Frequenz- und Zeitvektor für SMCW-Radar
-%   Eingabe:
-%   t:      Zeitvektor
-%   T:      Länge einer Periode
-%   f_s0:   Mittenfrequenz
-%   B:      Frequenzhub (symm. um f_s0)
-%   N:      Stepanzahl pro Flanke, sollte gerade sein
-%   K:      Periodenanzahl
-%   Ausgabe:
-%   f: Frequenzvektor
+function [ f ] = SMCW_Freq( t, T, f_0, B, n, N )
+%SMCW_Freq generates frequency vector for SFCW Radar
+%   Input:
+%   t:      time vector
+%   T:      periodic time
+%   f_0:    center frequency
+%   B:      sweep frequency (symm. around f_0)
+%   n:      steps per flank
+%   N:      measuring intervals
+%   Output:
+%   f:      frequency vector
 %
-%   Beispiel: SMCW_Freq()
+%   Example: SMCW_Freq()
 
-dt = T/(2*N); % Dauer eines Steps
-df = B/N; % Bandbreite eines Steps
-f = f_s0 - B/2; % Startfrequenz - Minimale Frequenz
+dt = T/(2*n); % time step
+df = B/n; % frequency step
+f = f_0 - B/2; % start frequency (minimal freq)
 
-for j=0:1:K-1
-    %% Steigende Flanke
-    for i=j*2*N+1:1:(2*j+1)*N
+% measuring intervals loop
+for j=0:1:N-1
+    %% rising flank
+    
+    % step loop
+    for i=j*2*n+1:1:(2*j+1)*n
         f = f + df*heaviside(t-i*dt);
     end
 
-    %% Fallende Flanke
+    %% falling flank
 
-    for i=(2*j+1)*N+1:1:(j+1)*2*N
+    %step loop
+    for i=(2*j+1)*n+1:1:(j+1)*2*n
        f = f - df*heaviside(t-i*dt); 
     end
 end

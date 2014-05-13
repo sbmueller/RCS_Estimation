@@ -1,45 +1,66 @@
-%% Simulation FMCW Radar
-% Bachelorarbeit von Sebastian Müller
+%% Simulation SFCW Radar RCS estimation
+% Bachelor thesis by Sebastian Müller
 
-% LÖsche alle Variablen
+% clear all variables
 clear all
 
-% Lösche Konsole
+% clear console
 clc;
 
-disp('// SIMULATION FMCW RADAR')
+disp('// SIMULATION SFCW RADAR')
 disp(' ')
 addpath Toolbox/
-%% Parameter
-% Naturkonstanten
 
-c = 299792458; % Lichtgeschwindigkeit [m/s]
-t = linspace(0, 1, 10000);
+%% Parameters
+% natural constants
 
-% Objektkonstanten
+c = 299792458; % speed of light [m/s]
 
-R = 10; % Distanz zum Ziel [m]
-v = 0; % Geschwindigkeit Ziel [m/s] (v>0 -> Auf Empfänger zu)
-sigma = 5; % Radarquerschnitt in [m^2]
+% object constants
 
-% Radardaten
+R = 1000;     % distance radar - target [m]
+v = 10;      % speed of target [m/s] (v>0 -> moves towards receiver)
+sigma = 5;  % radar cross section [m^2]
 
-f_s0 = 10; % Mittenfrequez [Hz]
-B = 20; % Frequenzhub Bandbreite [Hz]
-T_f = 0.5; % Flankendauer [s]
-n = 5; % Stepanzahl pro Flanke [1]
-N = 1; % Messintervalle [1]
+% radar constants
+
+f_a = 100e3; % sampling frequency [Hz]
+
+f_0 = 2.4e9;   % center frequency [Hz]
+B = 100e3;     % sweep frequency [Hz]
+T_f = 3e-4;  % sweep time per flank [s]
+n = 5;      % frequency steps per flank [1]
+N = 1;      % measuring intervals [1]
+
+P_s = 100;  % transmission power [W]
+
+% calculate remaining data
+
+T = N*2*T_f; % calculate measure time
+t = linspace(0, T, f_a*T); % create time vector
+
+f_smcw = SMCW_Freq(t, 2*T_f, f_0, B, n, N); % create frequency vector
+
+%% simulation data
+
+tau = 2*R/c;    % time delay
+f_D = 2*v*f_0/c;    % doppler frequency
+
+% transmitted signal
+
+s = sqrt(P_s) * exp(1i * 2 * pi * discrete_int(f_smcw, 1/f_a, f_a*T));
+
+% received signal
+
+r = 0.5 * sqrt(P_s) * exp(1i * 2 * pi * discrete_int(f_smcw, 1/f_a, ceil(f_a*(T-tau))));
+r = [zeros(1, f_a*T - ceil(f_a*(T-tau))) r]; % fill received vector with nulls for same length
+r = r .* exp(1i * 2 * pi * f_D * t); % add phase shift because of doppler
 
 
-% Erstellen der übrigen Daten
+plot (t, real(s), t, real(r));
+legend('transmitted', 'received');
+xlabel('t/s');
+ylabel('Ampl.');
 
-f_smcw = SMCW_Freq(t, 2*T_f, f_s0, B, n, N);
-f = @(time) f_smcw(:, t==time);
-%plot(t, f(t))
 
-%% Simulationsdaten
 
-%Sendesignal
-s = cos(2*pi*f(t).*t);
-ft = abs(fft(s));
-plot (ft);
