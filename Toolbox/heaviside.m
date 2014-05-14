@@ -1,7 +1,7 @@
 function [ y ] = heaviside( x )
-%heaviside Implementation des Einheitssprungs
-%   Definiert als   0 für x < 0
-%                   1 für x >= 0
+%heaviside Implementation of heaviside step function
+%   Defined as      0 for x < 0
+%                   1 for x >= 0
 y = (x >= 0);
 
 
