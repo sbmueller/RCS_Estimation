@@ -1,5 +1,5 @@
-function [ f ] = SMCW_Freq( t, T, f_0, B, n, N )
-%SMCW_Freq generates frequency vector for SFCW Radar
+function [ f ] = SFCW_Freq( t, T, f_0, B, n, N )
+%SFCW_Freq generates frequency vector for SFCW Radar
 %   Input:
 %   t:      time vector
 %   T:      periodic time
