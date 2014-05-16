@@ -29,8 +29,8 @@ f_a = 1e6; % sampling frequency [Hz]
 f_0 = 24.125e9;   % center frequency [Hz]
 B = 125e6;     % sweep frequency [Hz]
 T_f = 10e-3;  % sweep time per flank [s]
-n = 4;      % frequency steps per flank [1]
-N = 1;      % measuring intervals [1]
+n = 64;      % frequency steps per flank [1]
+N = 4;      % measuring intervals [1]
 
 P_s = 100;  % transmission power [W]
 G_T = 100;  % transmitting antenna gain [1]
@@ -75,9 +75,9 @@ end
 
 %% OR use analytical term (recommended)
 
-f_delay = [24.125e9*ones(1, S-floor(f_a*(T-tau))) f_sfcw(1:floor(f_a*(T-tau)))];    % frequency vector of received signal (delayed)
+f_delay = [f_sfcw(ceil(f_a*(T-tau)):length(f_sfcw)) f_sfcw(1:floor(f_a*(T-tau)))];    % frequency vector of received signal (delayed)
 
-q = c_r * P_s * exp(1i*2*pi*(discrete_int(f_sfcw - f_delay + f_D, 1/f_a, 1, S)));  % filled time delayed terms with nulls at the beginning for same vector length
+q = c_r * P_s * exp(1i*2*pi*(discrete_int(f_sfcw - f_delay - f_D, 1/f_a, 1, S)));  % filled time delayed terms truncated values at beginning
 
 % plot
 
@@ -88,7 +88,7 @@ f = f_a/2*linspace(0,1,NFFT/2+1);
 subplot(2,1,1);
 %plot(f, 2*abs(Y(1:NFFT/2+1)));
 plot(t, f_sfcw, t, f_delay);
-legend('freq sent', 'freq received');
+legend('freq sent');
 xlabel('Hz');
 ylabel('Ampl.');
 subplot(2,1,2);
