@@ -18,8 +18,8 @@ c = 299792458; % speed of light [m/s]
 
 % object constants
 
-R = 1000;     % distance radar - target [m]
-v = 10;      % speed of target [m/s] (v>0 -> moves towards receiver)
+R = 10;     % distance radar - target [m]
+v = 0;      % speed of target [m/s] (v>0 -> moves towards receiver)
 sigma = 5;  % radar cross section [m^2]
 
 % radar constants
@@ -29,7 +29,7 @@ f_a = 1e6; % sampling frequency [Hz]
 f_0 = 24.125e9;   % center frequency [Hz]
 B = 125e6;     % sweep frequency [Hz]
 T_f = 10e-3;  % sweep time per flank [s]
-n = 64;      % frequency steps per flank [1]
+n = 8;      % frequency steps per flank [1]
 N = 4;      % measuring intervals [1]
 
 P_s = 100;  % transmission power [W]
@@ -75,9 +75,10 @@ end
 
 %% OR use analytical term (recommended)
 
-f_delay = [f_sfcw(ceil(f_a*(T-tau)):length(f_sfcw)) f_sfcw(1:floor(f_a*(T-tau)))];    % frequency vector of received signal (delayed)
-
-q = c_r * P_s * exp(1i*2*pi*(discrete_int(f_sfcw - f_delay - f_D, 1/f_a, 1, S)));  % filled time delayed terms truncated values at beginning
+q = c_r * P_s * exp(1i*2*pi*(discrete_int(f_sfcw - f_D, 1/f_a, 1, S)...
+    - [discrete_int(f_sfcw, 1/f_a, f_a*(T-tau), S) discrete_int(f_sfcw, 1/f_a, 1, f_a*(T-tau))]));...
+    % Filled time delayed vector with truncated values at the beginning to
+    % simulate periodicity
 
 % plot
 
@@ -85,14 +86,19 @@ NFFT = 2^nextpow2(S);
 Y = fft(q, NFFT)/S;
 f = f_a/2*linspace(0,1,NFFT/2+1);
 
-subplot(2,1,1);
+subplot(3,1,1);
 %plot(f, 2*abs(Y(1:NFFT/2+1)));
-plot(t, f_sfcw, t, f_delay);
-legend('freq sent');
-xlabel('Hz');
-ylabel('Ampl.');
-subplot(2,1,2);
-plot(t, real(q));
-legend('baseband signal');
+plot(t, f_sfcw);
+title('freq sent');
+xlabel('t/s');
+ylabel('f/Hz');
+subplot(3,1,2);
+plot(t(1:S-1), abs(q));
+title('baseband signal abs');
 xlabel('t/s');
 ylabel('Ampl.');
+subplot(3,1,3);
+plot(t(1:S-1), unwrap(angle(q)));
+title('baseband signal phase');
+xlabel('t/s');
+ylabel('Phase/rad');

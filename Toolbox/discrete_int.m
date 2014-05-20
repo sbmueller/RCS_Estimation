@@ -7,11 +7,11 @@ function [ int ] = discrete_int( y, dx, min, max )
 %   Output:
 %   int:    integrated vector
 
-int = zeros(1, floor(max));
+int = zeros(1, floor(max)-floor(min));
 temp = 0;
-for i=min:1:floor(max-1)
+for i=floor(min):1:floor(max-1)
     temp = temp + y(:,i)*dx;
-    int(:,i) = temp;
+    int(:,i-floor(min)+1) = temp;
 end
 
 end
