@@ -1,4 +1,4 @@
-function spektrum(y, N, f_a) 
+function [y_fft, f_peak] = spektrum(y, N, f_a) 
 %spektrum generates spectral plot of signal y
 %   Input:
 %       y:      signal vector
@@ -13,9 +13,15 @@ H = fft(y, N);
 amplH = abs(H);
 amplitudengang = fftshift(amplH/N);
 
-stem(x_fa-fn, amplitudengang, 'b.-')
+[peak_y, peak_x] = findpeaks(amplitudengang, 'MINPEAKHEIGHT', ...
+    0.3*(max(amplitudengang) - min(amplitudengang)));
+peak_x = round(mean(peak_x));
+f_peak = x_fa(:,peak_x)-fn;
+y_fft = amplitudengang;
+
+plot(x_fa-fn, amplitudengang, 'b.-')
 %axis([-fn fn 0 (max(y)-min(y))/4*1.1])
-title('Amplitudengang')
+title('FFT')
 ylabel('Amplitude')
 xlabel(['Auflösung: ',num2str(df),' Hz Frequenz in Hz'])
 grid

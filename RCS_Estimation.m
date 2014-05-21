@@ -18,19 +18,19 @@ c = 299792458; % speed of light [m/s]
 
 % object constants
 
-R = 10;     % distance radar - target [m]
-v = 0;      % speed of target [m/s] (v>0 -> moves towards receiver)
+R = 100;     % distance radar - target [m]
+v = 5;      % speed of target [m/s] (v>0 -> moves towards receiver)
 sigma = 5;  % radar cross section [m^2]
 
 % radar constants
 
-f_a = 1e6; % sampling frequency [Hz]
+f_a = 125e3; % sampling frequency [Hz]
 
 f_0 = 24.125e9;   % center frequency [Hz]
 B = 125e6;     % sweep frequency [Hz]
 T_f = 10e-3;  % sweep time per flank [s]
 n = 8;      % frequency steps per flank [1]
-N = 4;      % measuring intervals [1]
+N = 5;      % measuring intervals [1]
 
 P_s = 100;  % transmission power [W]
 G_T = 100;  % transmitting antenna gain [1]
@@ -63,7 +63,7 @@ end
 
 % received signal
 
-%% Simulate mixing (not recommended)
+%% Simulate mixing (not recommended, not further developed)
 % r = c_r * sqrt(P_s) * exp(1i * 2 * pi *...
 %     discrete_int(f_sfcw, 1/f_a, 1, floor(f_a*(T-tau))));
 % r = [zeros(1, S - floor(f_a*(T-tau))) r]; % fill received vector with nulls for same length
@@ -82,23 +82,23 @@ q = c_r * P_s * exp(1i*2*pi*(discrete_int(f_sfcw - f_D, 1/f_a, 1, S)...
 
 % plot
 
-NFFT = 2^nextpow2(S);
-Y = fft(q, NFFT)/S;
-f = f_a/2*linspace(0,1,NFFT/2+1);
-
 subplot(3,1,1);
-%plot(f, 2*abs(Y(1:NFFT/2+1)));
-plot(t, f_sfcw);
-title('freq sent');
-xlabel('t/s');
-ylabel('f/Hz');
-subplot(3,1,2);
 plot(t(1:S-1), abs(q));
 title('baseband signal abs');
 xlabel('t/s');
 ylabel('Ampl.');
-subplot(3,1,3);
-plot(t(1:S-1), unwrap(angle(q)));
+
+subplot(3,1,2);
+plot(t(1:S-1), angle(q));
 title('baseband signal phase');
 xlabel('t/s');
 ylabel('Phase/rad');
+subplot(3,1,3);
+%plot(f, 2*abs(Y(1:NFFT/2+1)));
+[q_fft, f_D_est] = spektrum(q, 1024*16, f_a);
+
+%% Estimation
+
+% Calculate estimated v
+
+v_est = c/2 * -f_D_est/f_0; % use negative f_D because we are measuring '-f_D' in analytical term
