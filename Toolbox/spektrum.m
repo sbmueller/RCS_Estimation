@@ -1,4 +1,4 @@
-function [y_fft, f_peak] = spektrum(y, N, f_a) 
+function [y_fft, fD_x] = spektrum(y, N, f_a) 
 %spektrum generates spectral plot of signal y
 %   Input:
 %       y:      signal vector
@@ -14,10 +14,14 @@ amplH = abs(H);
 amplitudengang = fftshift(amplH/N);
 
 [peak_y, peak_x] = findpeaks(amplitudengang, 'MINPEAKHEIGHT', ...
-    0.3*(max(amplitudengang) - min(amplitudengang)));
-peak_x = round(mean(peak_x));
-f_peak = x_fa(:,peak_x)-fn;
+    0.5*(max(amplitudengang) - min(amplitudengang)), 'SORTSTR', 'descend', ...
+    'NPEAKS', 2); % Find two highest peaks in fft, f_D is in the middle
+
+fD_x = round(mean(peak_x)); % Find middle of two peaks
+fD_x = x_fa(:,fD_x)-fn; % Get corresponding frequency of peak
 y_fft = amplitudengang;
+
+% plot
 
 plot(x_fa-fn, amplitudengang, 'b.-')
 %axis([-fn fn 0 (max(y)-min(y))/4*1.1])
