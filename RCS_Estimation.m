@@ -19,7 +19,7 @@ c = 299792458; % speed of light [m/s]
 % object constants
 
 R = 100;     % distance radar - target [m]
-v = 5;      % speed of target [m/s] (v>0 -> moves towards receiver)
+v = 0;      % speed of target [m/s] (v>0 -> moves towards receiver)
 sigma = 5;  % radar cross section [m^2]
 
 % radar constants
@@ -100,7 +100,7 @@ q = c_r * P_s * exp(1i*2*pi*(discrete_int(f_sfcw - f_D, 1/f_a, 1, S)...
     % simulate periodicity
 
 % add noise  
-q = awgn(q, 60);
+%q = awgn(q, 60);
 %% Plot
 
 % plot abs
@@ -113,7 +113,7 @@ ylabel('Ampl.');
 
 % plot phase
 subplot(3,1,2);
-plot(t(1:S-1), angle(q));
+plot(t(1:S-1), unwrap(angle(q)));
 title('baseband signal phase');
 xlabel('t/s');
 ylabel('Phase/rad');
