@@ -18,13 +18,13 @@ c = 299792458; % speed of light [m/s]
 
 % object constants
 
-R = 10;     % distance radar - target [m]
+R = 250;     % distance radar - target [m]
 v = 0;      % speed of target [m/s] (v>0 -> moves towards receiver)
 sigma = 5;  % radar cross section [m^2]
 
 % radar constants
 
-f_a = 100e3; % sampling frequency [Hz]
+f_a = 1e6; % sampling frequency [Hz]
 
 f_0 = 24.125e9;   % center frequency [Hz]
 B = 1e6;     % sweep frequency [Hz]
@@ -39,11 +39,10 @@ G_R = 100;  % receiving antenna gain [1]
 %% Calculate remaining data
 
 T = N*2*T_f; % calculate measure time
-S = floor(f_a*T);   % number of samples
 t = 0:1/f_a:T-1/f_a; % create time vector
-lambda = c / f_0; %! CHANGES IN TIME
+lambda = c / f_0; % wavelength
 
-f_sfcw = SFCW_Freq(t, 2*T_f, f_0, B, n, N); % create frequency vector
+f_sfcw = SFCW_Freq(t, 2*T_f, f_0, B, n, N); % create sfcw frequency vector
 
 tau = 2*R/c;    % time delay
 f_D = 2*v*f_0/c;    % doppler frequency
@@ -74,7 +73,7 @@ end
 
 % transmitted signal
 
-s = sqrt(P_s) * exp(1i * 2 * pi * discrete_int(f_sfcw, 1/f_a, 1, S));
+s = sqrt(P_s) * exp(1i * 2 * pi * discrete_int(f_sfcw, f_a, 0, T));
 
 c_r = (sqrt(G_T)*sqrt(G_R)*lambda*sqrt(sigma))/((4*pi)^(3/2)*R^2); ...
 % attenuation because of radar equation
@@ -99,9 +98,10 @@ end
 %% OR use analytical term (recommended)
 
 q = c_r * P_s * exp(1i*2*pi*(discrete_int(f_sfcw, f_a, 0, T)...
-    - [zeros(1, ceil(f_a*tau)) discrete_int(f_sfcw, f_a, 0, T-tau)]...
+    - [zeros(1, timeToInt(tau, f_a)) discrete_int(f_sfcw, f_a, 0, T-tau)]...
     - f_D * t));
-    % Filled time delayed vector with zeros at beginning
+    % Filled time delayed vector with truncated values at beginning to
+    % simulate periodizity
 
     
 % add noise  
@@ -125,7 +125,8 @@ ylabel('Phase/rad');
 subplot(3,1,3);
 
 % plot fft
-[q_fft, f_D_est] = spektrum(q, 4096, f_a);
+[q_fft, f_D_est, f_R_est] = spektrum(q, 4096*128, f_a);
+
 
 % SFCW frequency plot
 % figure(fig+1);
@@ -140,15 +141,20 @@ subplot(3,1,3);
 
 v_est = c/2 * -f_D_est/f_0; % use negative f_D because we are measuring '-f_D' in analytical term
 
+% Calculate estimated R
+
+kappa = f_R_est*T_f;
+R_est = c/(2*B)*kappa;
+
 %% Diagnostic debug data
 
 df = B/n;
 dt = T_f/n;
 
-a = angle(q);
-dp = a(:,100);
-dp = abs(dp - a(:,105+floor(dt*f_a)));
-R_est = dp*c/(4*pi*df);
+% a = angle(q);
+% dp = a(:,100);
+% dp = abs(dp - a(:,105+floor(dt*f_a)));
+% R_est = dp*c/(4*pi*df);
 
 %% print results
 fprintf('Symbol \t\tValue\n');

@@ -2,7 +2,8 @@ function [ int ] = discrete_int( y, f_a, min, max )
 %discrete_int integrate discrete signals by adding up areas from 0 to max
 %   Input:
 %   y:      function vector
-%   dx:     step interval (smallest time resolution)
+%   f_a:    sampling frequency
+%   min:    lower bound
 %   max:    upper bound
 %   Output:
 %   int:    integrated vector
@@ -18,8 +19,8 @@ function [ int ] = discrete_int( y, f_a, min, max )
 %% Using cumtrapz() function (better)
 
 % convert time parameters to index parameters
-min = floor((f_a * min)+1);
-max = floor(f_a * max);
+min = timeToInt(min, f_a)+1;
+max = timeToInt(max, f_a);
 
 int = cumtrapz(y(min:max))/f_a; % see cumtrapz documentation
 
