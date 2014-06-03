@@ -18,13 +18,13 @@ c = 299792458; % speed of light [m/s]
 
 % object constants
 
-R = 250;     % distance radar - target [m]
+R = 260;     % distance radar - target [m]
 v = 0;      % speed of target [m/s] (v>0 -> moves towards receiver)
 sigma = 5;  % radar cross section [m^2]
 
 % radar constants
 
-f_a = 1e6; % sampling frequency [Hz]
+f_a = 6e5; % sampling frequency [Hz]
 
 f_0 = 24.125e9;   % center frequency [Hz]
 B = 1e6;     % sweep frequency [Hz]
@@ -145,6 +145,16 @@ v_est = c/2 * -f_D_est/f_0; % use negative f_D because we are measuring '-f_D' i
 
 kappa = f_R_est*T_f;
 R_est = c/(2*B)*kappa;
+
+R_vec = linspace(R-100, R+100, 1000);
+v_vec = R_vec .* B/(f_0 * T_f) - c*kappa/(2*f_0*T_f);
+
+figure(fig+1);
+plot(R_vec, v_vec, R_est, v_est, 'rx', R, v, 'gx');
+title('RV-Plot');
+xlabel('R / m');
+ylabel('v / m/s');
+legend('RV-Plot', 'Estimated', 'Actual');
 
 %% Diagnostic debug data
 
