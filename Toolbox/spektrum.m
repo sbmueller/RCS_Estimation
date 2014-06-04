@@ -1,12 +1,13 @@
 function [y_fft, fD_x, fR_x] = spektrum(y, N, f_a) 
-%spektrum generates spectral plot of signal y
+%spektrum generates fft of signal and finds abs of highest peak
 %   Input:
 %       y:      signal vector
 %       N:      N-point-fft
 %       f_a:    sampling frequency
 %   Output:
 %       y_fft:  fft vector of signal
-%       fD_x::  ---
+%       fD_x:   (will be removed) Doppler peak
+%       fR_x:   abs of highest peak
 
 df = f_a/N;
 fn = f_a/2;
@@ -30,10 +31,5 @@ y_fft = amplitudengang;
 
 % plot
 
-plot(x_fa-fn, amplitudengang, 'b.-')
-%axis([-fn fn 0 (max(y)-min(y))/4*1.1])
-title('FFT')
-ylabel('Amplitude')
-xlabel(['Auflösung: ',num2str(df),' Hz Frequenz in Hz'])
-grid
+
 end 

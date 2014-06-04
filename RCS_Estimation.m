@@ -18,23 +18,25 @@ c = 299792458; % speed of light [m/s]
 
 % object constants
 
-R = 260;     % distance radar - target [m]
+R = 100;     % distance radar - target [m]
 v = 0;      % speed of target [m/s] (v>0 -> moves towards receiver)
 sigma = 5;  % radar cross section [m^2]
 
 % radar constants
 
-f_a = 6e5; % sampling frequency [Hz]
-
+f_a = 9e5; % sampling frequency [Hz]
+1
 f_0 = 24.125e9;   % center frequency [Hz]
-B = 1e6;     % sweep frequency [Hz]
+B = 50e6;     % sweep frequency [Hz]
 T_f = 10e-3;  % sweep time per flank [s]
-n = 32;      % frequency steps per flank [1]
+n = 64;      % frequency steps per flank [1]
 N = 1;      % measuring intervals [1]
 
 P_s = 100;  % transmission power [W]
 G_T = 100;  % transmitting antenna gain [1]
 G_R = 100;  % receiving antenna gain [1]
+
+N_fft = 4096*128; % FFT Size
 
 %% Calculate remaining data
 
@@ -46,6 +48,8 @@ f_sfcw = SFCW_Freq(t, 2*T_f, f_0, B, n, N); % create sfcw frequency vector
 
 tau = 2*R/c;    % time delay
 f_D = 2*v*f_0/c;    % doppler frequency
+
+f_min = f_0 - B/(2*n);
 
 %% check values
 
@@ -106,6 +110,32 @@ q = c_r * P_s * exp(1i*2*pi*(discrete_int(f_sfcw, f_a, 0, T)...
     
 % add noise  
 %q = awgn(q, 60);
+
+%% Estimation
+
+[q_fft, f_D_est, f_R_est] = spektrum(q, N_fft, f_a); % Calculate fft and frequency shift
+
+% Calculate estimated v
+
+v_est = c/2 * -f_D_est/f_0; % use negative f_D because we are measuring '-f_D' in analytical term
+
+% Calculate estimated R
+
+kappa = f_R_est*T_f; % calculate spatial frequency
+R_est = c/(2*B)*kappa; % estimate R
+
+%% Diagnostic debug data
+
+df = B/n;
+dt = T_f/n;
+R_max = c/(2*df)
+dR = c/(2*B)
+
+% a = angle(q);
+% dp = a(:,100);
+% dp = abs(dp - a(:,105+floor(dt*f_a)));
+% R_est = dp*c/(4*pi*df);
+
 %% Plot
 
 % plot abs
@@ -124,9 +154,14 @@ xlabel('t/s');
 ylabel('Phase/rad');
 subplot(3,1,3);
 
-% plot fft
-[q_fft, f_D_est, f_R_est] = spektrum(q, 4096*128, f_a);
-
+% FFT Plot
+x_fa = 0:f_a/N_fft:f_a-f_a/N_fft;
+plot(x_fa-f_a/2, q_fft, 'b.-')
+%axis([-fn fn 0 (max(y)-min(y))/4*1.1])
+title('FFT')
+ylabel('Amplitude')
+xlabel(['Auflösung: ',num2str(df),' Hz Frequenz in Hz'])
+grid
 
 % SFCW frequency plot
 % figure(fig+1);
@@ -135,36 +170,15 @@ subplot(3,1,3);
 % xlabel('t/s');
 % ylabel('f/Hz');
 
-%% Estimation
-
-% Calculate estimated v
-
-v_est = c/2 * -f_D_est/f_0; % use negative f_D because we are measuring '-f_D' in analytical term
-
-% Calculate estimated R
-
-kappa = f_R_est*T_f;
-R_est = c/(2*B)*kappa;
-
-R_vec = linspace(R-100, R+100, 1000);
-v_vec = R_vec .* B/(f_0 * T_f) - c*kappa/(2*f_0*T_f);
-
-figure(fig+1);
-plot(R_vec, v_vec, R_est, v_est, 'rx', R, v, 'gx');
-title('RV-Plot');
-xlabel('R / m');
-ylabel('v / m/s');
-legend('RV-Plot', 'Estimated', 'Actual');
-
-%% Diagnostic debug data
-
-df = B/n;
-dt = T_f/n;
-
-% a = angle(q);
-% dp = a(:,100);
-% dp = abs(dp - a(:,105+floor(dt*f_a)));
-% R_est = dp*c/(4*pi*df);
+% RV Plot
+% figure(fig+1);
+% R_vec = linspace(R-100, R+100, 1000); % generate R vector for RV plot
+% v_vec = R_vec .* B/(f_0 * T_f) - c*kappa/(2*f_0*T_f); % generate v vector for RV plot
+% plot(R_vec, v_vec, R_est, v_est, 'rx', R, v, 'gx');
+% title('RV-Plot');
+% xlabel('R / m');
+% ylabel('v / m/s');
+% legend('RV-Plot', 'Estimated', 'Actual');
 
 %% print results
 fprintf('Symbol \t\tValue\n');
