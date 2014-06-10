@@ -18,7 +18,7 @@ c = 299792458; % speed of light [m/s]
 
 % object constants
 
-R = 20;     % distance radar - target [m]
+R = 10;     % distance radar - target [m]
 v = 0;      % speed of target [m/s] (v>0 -> moves towards receiver)
 sigma = 5;  % radar cross section [m^2]
 
@@ -81,7 +81,7 @@ dt = T_f/n;
 R_max = c/(2*df)
 dR = c/(2*B)
 
-phi_bb = baseband_phase(f_min, tau, dt, df, T/N, t);
+phi_bb = baseband_phase(f_min, tau, dt, df, T/N, t); % get phase of baseband signal
 
 % a = angle(q);
 % dp = a(:,100);
@@ -139,7 +139,7 @@ v_est = c/2 * -f_D_est/f_0; % use negative f_D because we are measuring '-f_D' i
 
 % Calculate estimated R
 
-kappa = f_R_est*T_f; % calculate spatial frequency
+kappa = f_R_est; % calculate spatial frequency (still buggy)
 R_est = c/(2*B)*kappa; % estimate R
 
 
