@@ -18,14 +18,14 @@ c = 299792458; % speed of light [m/s]
 
 % object constants
 
-R = 100;     % distance radar - target [m]
+R = 20;     % distance radar - target [m]
 v = 0;      % speed of target [m/s] (v>0 -> moves towards receiver)
 sigma = 5;  % radar cross section [m^2]
 
 % radar constants
 
-f_a = 9e5; % sampling frequency [Hz]
-1
+f_a = 1e6; % sampling frequency [Hz]
+
 f_0 = 24.125e9;   % center frequency [Hz]
 B = 50e6;     % sweep frequency [Hz]
 T_f = 10e-3;  % sweep time per flank [s]
@@ -73,6 +73,20 @@ if v < c/(2*f_0*T_f)
     disp('WARNING: v too small for speed resolution! Use longer sweep time.');
     disp(' ');
 end
+
+%% Diagnostic debug data
+
+df = B/n;
+dt = T_f/n;
+R_max = c/(2*df)
+dR = c/(2*B)
+
+phi_bb = baseband_phase(f_min, tau, dt, df, T/N, t);
+
+% a = angle(q);
+% dp = a(:,100);
+% dp = abs(dp - a(:,105+floor(dt*f_a)));
+% R_est = dp*c/(4*pi*df);
 %% simulation data
 
 % transmitted signal
@@ -101,9 +115,13 @@ end
 
 %% OR use analytical term (recommended)
 
-q = c_r * P_s * exp(1i*2*pi*(discrete_int(f_sfcw, f_a, 0, T)...
-    - [zeros(1, timeToInt(tau, f_a)) discrete_int(f_sfcw, f_a, 0, T-tau)]...
-    - f_D * t));
+% q = c_r * P_s * exp(1i*2*pi*(discrete_int(f_sfcw, f_a, 0, T)...
+%     - [zeros(1, timeToInt(tau, f_a)) discrete_int(f_sfcw, f_a, 0, T-tau)]...
+%     - f_D * t));
+t_dec = decimate(t, 300);
+t_dec  = interp(t_dec, 300, 1);
+t_dec = t_dec(1:length(t));
+q = c_r * P_s * exp(1i*2*pi*(phi_bb - f_D * t_dec));
     % Filled time delayed vector with truncated values at beginning to
     % simulate periodizity
 
@@ -124,21 +142,11 @@ v_est = c/2 * -f_D_est/f_0; % use negative f_D because we are measuring '-f_D' i
 kappa = f_R_est*T_f; % calculate spatial frequency
 R_est = c/(2*B)*kappa; % estimate R
 
-%% Diagnostic debug data
 
-df = B/n;
-dt = T_f/n;
-R_max = c/(2*df)
-dR = c/(2*B)
-
-% a = angle(q);
-% dp = a(:,100);
-% dp = abs(dp - a(:,105+floor(dt*f_a)));
-% R_est = dp*c/(4*pi*df);
 
 %% Plot
 
-% plot abs
+%plot abs
 fig = figure(1);
 subplot(3,1,1);
 plot(t, abs(q));
