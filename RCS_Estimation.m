@@ -21,7 +21,7 @@ sigma = 5;  % radar cross section [m^2]
 
 % radar constants
 
-f_a = 1e6; % sampling frequency [Hz]
+f_a = 125e3; % sampling frequency [Hz]
 f_0 = 24.125e9;   % center frequency [Hz]
 B = 50e6;     % sweep frequency [Hz]
 T_f = 10e-3;  % sweep time per flank [s]
@@ -32,7 +32,7 @@ P_s = 100;  % transmission power [W]
 G_T = 20;  % transmitting antenna gain [dBi]
 G_R = 20;  % receiving antenna gain [dBi]
 
-N_fft = 4096*128; % FFT Size
+N_fft = 1024*128; % FFT Size
 
 %% Calculate remaining data
 
@@ -109,7 +109,7 @@ q = c_r * P_s * exp(1i*2*pi*(phi_bb - f_D * t)); % baseband signal
 
 % Calculate estimated v
 
-v_est = 0 % (not implemented yet)
+v_est = 0; % (not implemented yet)
 
 % Calculate estimated R
 % (we ware still assuming v = 0)
@@ -119,30 +119,30 @@ R_est = c/(2*B)*kappa; % estimate R
 
 %% Plot
 
-% %plot abs
+%plot abs
 % fig = figure(1);
 % subplot(3,1,1);
 % plot(t, abs(q));
 % title('baseband signal abs');
 % xlabel('t/s');
 % ylabel('Ampl.');
-% 
-% % plot phase
-% subplot(3,1,2);
-% plot(t, angle(q));
-% title('baseband signal phase');
-% xlabel('t/s');
-% ylabel('Phase/rad');
-% subplot(3,1,3);
-% 
-% % FFT Plot
-% x_fa = 0:f_a/N_fft:f_a-f_a/N_fft;
-% plot(x_fa-f_a/2, q_fft, 'b.-')
-% %axis([-fn fn 0 (max(y)-min(y))/4*1.1])
-% title('FFT')
-% ylabel('Amplitude')
-% xlabel(['Auflösung: ',num2str(df),' Hz Frequenz in Hz'])
-% grid
+
+% plot phase
+subplot(2,1,1);
+plot(t, angle(q));
+title('baseband signal phase');
+xlabel('t/s');
+ylabel('Phase/rad');
+
+% FFT Plot
+subplot(2,1,2);
+x_fa = 0:f_a/N_fft:f_a-f_a/N_fft;
+plot(x_fa-f_a/2, q_fft, 'b.-')
+%axis([-fn fn 0 (max(y)-min(y))/4*1.1])
+title('FFT')
+ylabel('Amplitude')
+xlabel(['Auflösung: ',num2str(df),' Hz Frequenz in Hz'])
+grid
 
 % SFCW frequency plot
 % figure(fig+1);
@@ -162,10 +162,11 @@ R_est = c/(2*B)*kappa; % estimate R
 % legend('RV-Plot', 'Estimated', 'Actual');
 
 %% print results
-fprintf('Symbol \t\tValue\n');
-fprintf(['v\t\t', num2str(v), ' m/s\n']);
-fprintf(['v (estimated)\t', num2str(v_est), ' m/s\n']);
-fprintf(['R\t\t', num2str(R), ' m\n']);
-fprintf(['R (estimated)\t', num2str(R_est), ' m\n']);
+
+fprintf('Symbol \tValue (real) \tValue (est) \tError (rel)\n');
+fprintf('-----------------------------------------------------\n')
+fprintf(['v\t', num2str(v), '\t\t', num2str(v_est), '\t\t', num2str(0), ' %% \n']);
+fprintf(['R\t', num2str(R), '\t\t', num2str(R_est), '\t', num2str((R_est-R)/R*100), ' %% \n']);
+fprintf(['RCS\t', num2str(sigma), '\t\t', num2str(sigma), '\n']);
 
 

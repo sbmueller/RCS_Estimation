@@ -18,12 +18,12 @@ f_intdown = 0.5*(-0.5* t_jump(ceil(length(t_jump)/2):length(t_jump)) *tau+tau^2)
 
 f_int = [f_intup f_intdown]; % combine both flanks
 
+rep_factor = floor(length(t)/length(f_int));
 % interpolate phase to fit time vector with zero order function
-f_int = repmat(f_int, 155, 1);
-f_int = reshape(f_int, 1, 155*length(t_jump));
+f_int = repmat(f_int, rep_factor, 1);
+f_int = reshape(f_int, 1, rep_factor*length(t_jump));
 
 % repeat last few samples to fit odd number of timesamples
 for i=1:length(t)-length(f_int)
     f_int = [f_int f_int(:,length(f_int))];
 end
-
