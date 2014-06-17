@@ -9,11 +9,11 @@ function [ f_int ] = baseband_phase( f_0, tau, dt, df, T, t )
 %   t:      time vector
 
 
-t_jump = 0:dt:T;    % create vector of jump times
-f_intup = f_0*tau-0.5*(-0.5* t_jump(1:floor(length(t_jump)/2)) *tau+tau^2)*df/dt; % integral of raising flank
+t_jump = 0:dt:T-dt;    % create vector of jump times
+f_intup = f_0*tau-0.5*(-0.5* t_jump(1:floor(length(t_jump)/2 + 1)) *tau+tau^2)*df/dt; % integral of raising flank
 
-f_intdown = 0.5*(-0.5* t_jump(ceil(length(t_jump)/2):length(t_jump)) *tau+tau^2)*df/dt ...
-   + f_intup(:,floor(length(t_jump)/2)) - 0.5*(-0.5* t_jump(:,ceil(length(t_jump)/2)) *tau+tau^2)*df/dt; ...
+f_intdown = 0.5*(-0.5* t_jump(floor(length(t_jump)/2 + 2):length(t_jump)) *tau+tau^2)*df/dt ...
+    + 2*f_intup(:,length(f_intup)) - f_0*tau;
    % integral of falling flank
 
 f_int = [f_intup f_intdown]; % combine both flanks
@@ -27,3 +27,6 @@ f_int = reshape(f_int, 1, rep_factor*length(t_jump));
 for i=1:length(t)-length(f_int)
     f_int = [f_int f_int(:,length(f_int))];
 end
+
+% debug plot
+% plot(t, f_int);

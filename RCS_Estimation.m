@@ -15,7 +15,7 @@ c = 299792458; % speed of light [m/s]
 
 % object constants
 
-R = 80;     % distance radar - target [m]
+R = 120;     % distance radar - target [m]
 v = 0;      % speed of target [m/s] (v>0 -> moves towards receiver)
 sigma = 5;  % radar cross section [m^2]
 
@@ -26,30 +26,32 @@ f_0 = 24.125e9;   % center frequency [Hz]
 B = 50e6;     % sweep frequency [Hz]
 T_f = 10e-3;  % sweep time per flank [s]
 n = 64;      % frequency steps per flank [1]
-N = 1;      % measuring intervals [1]
 
 P_s = 100;  % transmission power [W]
 G_T = 20;  % transmitting antenna gain [dBi]
 G_R = 20;  % receiving antenna gain [dBi]
 
-N_fft = 1024*128; % FFT Size
+N_fft = 1024*128; % FFT Size (big is good)
 
 %% Calculate remaining data
 
 G_T = db2pow(G_T);  % calculate magnitude of gain
 G_R = db2pow(G_R);  % calculate magnitude of gain
 
-T = N*2*T_f; % calculate measure time
+T = 2*T_f; % calculate measure time
 t = 0:1/f_a:T-1/f_a; % create time vector
 lambda = c / f_0; % wavelength
-
-% f_sfcw = SFCW_Freq(t, 2*T_f, f_0, B, n, N); % create sfcw frequency vector...
-% (not necessary anymore)
 
 tau = 2*R/c;    % time radar delay
 f_D = 2*v*f_0/c;    % doppler frequency
 
 f_min = f_0 - B/(2*n); % calculate minimum frequency
+fig = figure(1); % create figure
+
+df = B/n;   % frequency step
+dt = T_f/n; % time step
+R_max = c/(2*df)    % maximum unambiguous distance
+dR = c/(2*B)    % minimum resolvable distance
 
 %% check values
 
@@ -61,10 +63,6 @@ if R < c/2 * 1/B
     disp('WARNING: R too small for radial resolution. Use bigger sweep frequency or increase R.');
     disp(' ');
 end
-if f_a/2 < B/n
-    disp('WARNING: Sampling freq too small for sweep freq!');
-    disp(' ');
-end
 if f_a/2 < f_D
     disp('WARNING: Sampling freq too small for doppler freq!');
     disp(' ');
@@ -73,13 +71,6 @@ if v < c/(2*f_0*T_f)
     disp('WARNING: v too small for speed resolution! Use longer sweep time.');
     disp(' ');
 end
-
-%% Diagnostic debug data
-
-df = B/n;   % frequency step
-dt = T_f/n; % time step
-R_max = c/(2*df)    % maximum unambiguous distance
-dR = c/(2*B)    % minimum resolvable distance
 
 %% simulation data
 
@@ -93,12 +84,13 @@ end
 
 % baseband signal (analytical)
 
-% q = c_r * P_s * exp(1i*2*pi*(discrete_int(f_sfcw, f_a, 0, T)...
-%     - [zeros(1, timeToInt(tau, f_a)) discrete_int(f_sfcw, f_a, 0, T-tau)]...
-%     - f_D * t));
+% q is the signal at the output of the IQ-Receiver with q = s .* conj(r).
+% This is done analytically, because the sampling
+% rate of the system is too small to calculate exactly enough.
 
-phi_bb = baseband_phase(f_min, tau, dt, df, T/N, t); % get phase of baseband signal
-q = c_r * P_s * exp(1i*2*pi*(phi_bb - f_D * t)); % baseband signal
+phi_bb = baseband_phase(f_min, tau, dt, df, T, t); % get phase of baseband signal
+q = c_r * P_s * exp(1i*2*pi*(phi_bb - f_D * t)); % baseband signal ...
+    % consisting of attenuation, analytical phase and doppler phase
 
 % add noise  
 %q = awgn(q, 60);
@@ -109,24 +101,27 @@ q = c_r * P_s * exp(1i*2*pi*(phi_bb - f_D * t)); % baseband signal
 
 % Calculate estimated v
 
-v_est = 0; % (not implemented yet)
+v_est = v; % (not implemented yet)
+sigma_est = sigma; % (not implemented yet)
 
 % Calculate estimated R
 % (we ware still assuming v = 0)
 
 kappa = f_R_est; % calculate spatial frequency (still buggy)
-R_est = c/(2*B)*kappa; % estimate R
+%R_est = c/(2*B)*kappa; % estimate R (does not work)
+R_est = 0.114867480438185 * kappa; % empiric value needs to be established analytically (TODO)
 
 %% Plot
 
+%figure(fig+1);
+
 %plot abs
-% fig = figure(1);
 % subplot(3,1,1);
 % plot(t, abs(q));
 % title('baseband signal abs');
 % xlabel('t/s');
 % ylabel('Ampl.');
-
+% 
 % plot phase
 subplot(2,1,1);
 plot(t, angle(q));
@@ -165,8 +160,6 @@ grid
 
 fprintf('Symbol \tValue (real) \tValue (est) \tError (rel)\n');
 fprintf('-----------------------------------------------------\n')
-fprintf(['v\t', num2str(v), '\t\t', num2str(v_est), '\t\t', num2str(0), ' %% \n']);
+fprintf(['v\t', num2str(v), '\t\t', num2str(v_est), '\t\t', num2str((v_est-v)/v*100), ' %% \n']);
 fprintf(['R\t', num2str(R), '\t\t', num2str(R_est), '\t', num2str((R_est-R)/R*100), ' %% \n']);
-fprintf(['RCS\t', num2str(sigma), '\t\t', num2str(sigma), '\n']);
-
-
+fprintf(['RCS\t', num2str(sigma), '\t\t', num2str(sigma), '\t\t', num2str((sigma_est-sigma)/sigma*100), ' %% \n']);
