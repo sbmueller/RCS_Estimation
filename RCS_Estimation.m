@@ -15,7 +15,7 @@ c = 299792458; % speed of light [m/s]
 
 % object constants
 
-R = 120;     % distance radar - target [m]
+R = 90;     % distance radar - target1m]
 v = 0;      % speed of target [m/s] (v>0 -> moves towards receiver)
 sigma = 5;  % radar cross section [m^2]
 
@@ -23,15 +23,15 @@ sigma = 5;  % radar cross section [m^2]
 
 f_a = 125e3; % sampling frequency [Hz]
 f_0 = 24.125e9;   % center frequency [Hz]
-B = 50e6;     % sweep frequency [Hz]
+B = 200e6;     % sweep frequency [Hz]
 T_f = 10e-3;  % sweep time per flank [s]
-n = 64;      % frequency steps per flank [1]
+n = 128;      % frequency steps per flank [1]
 
 P_s = 100;  % transmission power [W]
 G_T = 20;  % transmitting antenna gain [dBi]
 G_R = 20;  % receiving antenna gain [dBi]
 
-N_fft = 1024*128; % FFT Size (big is good)
+N_fft = 4096; % FFT Size (big is good)
 
 %% Calculate remaining data
 
@@ -40,6 +40,7 @@ G_R = db2pow(G_R);  % calculate magnitude of gain
 
 T = 2*T_f; % calculate measure time
 t = 0:1/f_a:T-1/f_a; % create time vector
+
 lambda = c / f_0; % wavelength
 
 tau = 2*R/c;    % time radar delay
@@ -52,6 +53,7 @@ df = B/n;   % frequency step
 dt = T_f/n; % time step
 R_max = c/(2*df)    % maximum unambiguous distance
 dR = c/(2*B)    % minimum resolvable distance
+t_jump = dt:dt:T; % create time vector of sampling points
 
 %% check values
 
@@ -88,16 +90,22 @@ end
 % This is done analytically, because the sampling
 % rate of the system is too small to calculate exactly enough.
 
-phi_bb = baseband_phase(f_min, tau, dt, df, T, t); % get phase of baseband signal
-q = c_r * P_s * exp(1i*2*pi*(phi_bb - f_D * t)); % baseband signal ...
+phi_bb = baseband_phase(f_min, tau, dt, df, T); % get phase of baseband signal
+q = c_r * P_s * exp(1i*(phi_bb - 2*pi*f_D * t_jump)); % baseband signal ...
     % consisting of attenuation, analytical phase and doppler phase
 
 % add noise  
-%q = awgn(q, 60);
+% q = awgn(q, 60);
 
 %% Estimation
 
-[q_fft, f_R_est] = spektrum(q, N_fft, f_a); % Calculate fft and frequency shift
+[q_fft, f_fft] = spektrum(q, N_fft, 1/dt); % Calculate fft and frequency shift
+% find peaks
+
+[peak_y, peak_x] = findpeaks(q_fft, 'NPEAKS', 1, 'SORTSTR', 'descend'); ...
+    % finds highest peak in spectrum
+
+fR = abs(f_fft(:,round(peak_x))); % Get Highest peak freqency
 
 % Calculate estimated v
 
@@ -107,10 +115,10 @@ sigma_est = sigma; % (not implemented yet)
 % Calculate estimated R
 % (we ware still assuming v = 0)
 
-kappa = f_R_est; % calculate spatial frequency (still buggy)
+kappa = fR; % calculate spatial frequency (still buggy)
 %R_est = c/(2*B)*kappa; % estimate R (does not work)
-R_est = 0.114867480438185 * kappa; % empiric value needs to be established analytically (TODO)
-
+R_est = c/(2*B)/2/pi * kappa; % empiric value needs to be established analytically (TODO)
+%R_est = abs(c/T*(f_D*T-kappa)*dt/df); % own analytical term (does also not work :(
 %% Plot
 
 %figure(fig+1);
@@ -124,19 +132,19 @@ R_est = 0.114867480438185 * kappa; % empiric value needs to be established analy
 % 
 % plot phase
 subplot(2,1,1);
-plot(t, angle(q));
+stairs(t_jump, angle(q), '-x');
 title('baseband signal phase');
 xlabel('t/s');
 ylabel('Phase/rad');
 
-% FFT Plot
+% PSD Plot
 subplot(2,1,2);
-x_fa = 0:f_a/N_fft:f_a-f_a/N_fft;
-plot(x_fa-f_a/2, q_fft, 'b.-')
+x_fa = 0:1/dt/N_fft:1/dt-1/dt/N_fft;
+plot(x_fa-1/dt/2, q_fft.^2, '.-')
 %axis([-fn fn 0 (max(y)-min(y))/4*1.1])
-title('FFT')
+title('power spectral density')
 ylabel('Amplitude')
-xlabel(['Auflösung: ',num2str(df),' Hz Frequenz in Hz'])
+xlabel(['Auflösung: ',num2str(1/dt/N_fft),' Hz Frequenz in Hz'])
 grid
 
 % SFCW frequency plot
@@ -161,5 +169,5 @@ grid
 fprintf('Symbol \tValue (real) \tValue (est) \tError (rel)\n');
 fprintf('-----------------------------------------------------\n')
 fprintf(['v\t', num2str(v), '\t\t', num2str(v_est), '\t\t', num2str((v_est-v)/v*100), ' %% \n']);
-fprintf(['R\t', num2str(R), '\t\t', num2str(R_est), '\t', num2str((R_est-R)/R*100), ' %% \n']);
+fprintf(['R\t', num2str(R), '\t\t', num2str(R_est), '\t\t', num2str((R_est-R)/R*100), ' %% \n']);
 fprintf(['RCS\t', num2str(sigma), '\t\t', num2str(sigma), '\t\t', num2str((sigma_est-sigma)/sigma*100), ' %% \n']);
