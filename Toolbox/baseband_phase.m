@@ -15,6 +15,7 @@ f_intup = tau*(f_0 + t_jump(1:floor(length(t_jump)/2 + 1)) * df/dt); % Integral 
 f_intdown = tau * (-t_jump(floor(length(t_jump)/2 + 2):length(t_jump)) * df/dt) ...
 	+ 2*f_intup(:, length(f_intup)) - f_0*tau; % Integral of falling flank
 
+
 f_int = 2*pi* [f_intup f_intdown]; % combine both flanks
 
 %% Upsampling
@@ -30,4 +31,4 @@ f_int = 2*pi* [f_intup f_intdown]; % combine both flanks
 % end
 
 % debug plot
-% stairs(t_jump, f_int);
+% stairs(t_jump, f_int, '-x');

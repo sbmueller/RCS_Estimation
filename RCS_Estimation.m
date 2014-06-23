@@ -15,7 +15,7 @@ c = 299792458; % speed of light [m/s]
 
 % object constants
 
-R = 90;     % distance radar - target1m]
+R = 15;     % distance radar - target [m]
 v = 0;      % speed of target [m/s] (v>0 -> moves towards receiver)
 sigma = 5;  % radar cross section [m^2]
 
@@ -23,7 +23,7 @@ sigma = 5;  % radar cross section [m^2]
 
 f_a = 125e3; % sampling frequency [Hz]
 f_0 = 24.125e9;   % center frequency [Hz]
-B = 200e6;     % sweep frequency [Hz]
+B = 500e6;     % sweep frequency [Hz]
 T_f = 10e-3;  % sweep time per flank [s]
 n = 128;      % frequency steps per flank [1]
 
@@ -51,13 +51,13 @@ fig = figure(1); % create figure
 
 df = B/n;   % frequency step
 dt = T_f/n; % time step
-R_max = c/(2*df)    % maximum unambiguous distance
+R_max = c/(4*df)    % maximum unambiguous distance
 dR = c/(2*B)    % minimum resolvable distance
 t_jump = dt:dt:T; % create time vector of sampling points
 
 %% check values
 
-if R > c/2 * n/B
+if R > c/4 * n/B
     disp(['WARNING: R too big for unambiguous calculation. R has to be smaller than ' , num2str(c/2*n/B) , ' m']);
     disp(' ');
 end
@@ -90,7 +90,7 @@ end
 % This is done analytically, because the sampling
 % rate of the system is too small to calculate exactly enough.
 
-phi_bb = baseband_phase(f_min, tau, dt, df, T); % get phase of baseband signal
+[phi_bb] = baseband_phase(f_min, tau, dt, df, T); % get phase of baseband signal
 q = c_r * P_s * exp(1i*(phi_bb - 2*pi*f_D * t_jump)); % baseband signal ...
     % consisting of attenuation, analytical phase and doppler phase
 
@@ -115,10 +115,9 @@ sigma_est = sigma; % (not implemented yet)
 % Calculate estimated R
 % (we ware still assuming v = 0)
 
-kappa = fR; % calculate spatial frequency (still buggy)
-%R_est = c/(2*B)*kappa; % estimate R (does not work)
-R_est = c/(2*B)/2/pi * kappa; % empiric value needs to be established analytically (TODO)
-%R_est = abs(c/T*(f_D*T-kappa)*dt/df); % own analytical term (does also not work :(
+kappa = fR * dt*n; % calculate spatial frequency
+R_est = c/(2*B)* kappa; % estimate R
+
 %% Plot
 
 %figure(fig+1);
@@ -132,7 +131,7 @@ R_est = c/(2*B)/2/pi * kappa; % empiric value needs to be established analytical
 % 
 % plot phase
 subplot(2,1,1);
-stairs(t_jump, angle(q), '-x');
+stem(t_jump, unwrap(angle(q)), '-x');
 title('baseband signal phase');
 xlabel('t/s');
 ylabel('Phase/rad');
@@ -140,7 +139,7 @@ ylabel('Phase/rad');
 % PSD Plot
 subplot(2,1,2);
 x_fa = 0:1/dt/N_fft:1/dt-1/dt/N_fft;
-plot(x_fa-1/dt/2, q_fft.^2, '.-')
+plot(f_fft, q_fft.^2, '.-')
 %axis([-fn fn 0 (max(y)-min(y))/4*1.1])
 title('power spectral density')
 ylabel('Amplitude')
