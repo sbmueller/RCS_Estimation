@@ -18,3 +18,4 @@ To start the simulation, execute `RCS_Estimation` in Matlab. Most parameters can
 The following assumptions where taken:
 
 - The distance of the objects is large in relation to the distance it will move during the measurement (R = const.)
+- The target is static (for now v = 0)
