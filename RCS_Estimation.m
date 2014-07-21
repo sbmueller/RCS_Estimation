@@ -17,7 +17,7 @@ c = 299792458; % speed of light [m/s]
 
 R = 15;     % distance radar - target [m]
 v = 0;      % speed of target [m/s] (v>0 -> moves towards receiver)
-sigma = 5;  % radar cross section [m^2]
+sigma = 5;  % radar cross section [m^2] >0
 
 % radar constants
 
@@ -110,7 +110,7 @@ fR = abs(f_fft(:,round(peak_x))); % Get Highest peak freqency
 % Calculate estimated v
 
 v_est = v; % (not implemented yet)
-sigma_est = sigma; % (not implemented yet)
+%sigma_est = sigma; % (not implemented yet)
 
 % Calculate estimated R
 % (we ware still assuming v = 0)
@@ -118,6 +118,24 @@ sigma_est = sigma; % (not implemented yet)
 kappa = fR * dt*n; % calculate spatial frequency
 R_est = c/(2*B)* kappa; % estimate R
 
+% RCS Estimation
+
+sigma_est = estimate_sigma(q, 1/dt, P_s, (4*pi)^3/(G_R*G_T*lambda^2), R_est);
+
+% Error calculation
+if R == 0
+    error_R = '---';
+else
+    error_R = num2str((R_est-R)/R*100);
+end
+
+if v == 0
+    error_v = '---';
+else
+    error_v = num2str((v_est-v)/v*100);
+end
+    
+error_sigma = num2str((sigma_est-sigma)/sigma*100);
 %% Plot
 
 %figure(fig+1);
@@ -167,6 +185,6 @@ grid
 
 fprintf('Symbol \tValue (real) \tValue (est) \tError (rel)\n');
 fprintf('-----------------------------------------------------\n')
-fprintf(['v\t', num2str(v), '\t\t', num2str(v_est), '\t\t', num2str((v_est-v)/v*100), ' %% \n']);
-fprintf(['R\t', num2str(R), '\t\t', num2str(R_est), '\t\t', num2str((R_est-R)/R*100), ' %% \n']);
-fprintf(['RCS\t', num2str(sigma), '\t\t', num2str(sigma), '\t\t', num2str((sigma_est-sigma)/sigma*100), ' %% \n']);
+fprintf(['v\t', num2str(v), '\t\t', num2str(v_est), '\t\t', error_v, ' %% \n']);
+fprintf(['R\t', num2str(R), '\t\t', num2str(R_est), '\t\t', error_R, ' %% \n']);
+fprintf(['RCS\t', num2str(sigma), '\t\t', num2str(sigma_est), '\t\t', error_sigma, ' %% \n']);
