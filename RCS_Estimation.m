@@ -32,6 +32,7 @@ G_T = 20;  % transmitting antenna gain [dBi]
 G_R = 20;  % receiving antenna gain [dBi]
 
 N_fft = 4096; % FFT Size (big is good)
+k = 100; % Number of measurements
 
 %% Calculate remaining data
 
@@ -89,38 +90,73 @@ end
 % q is the signal at the output of the IQ-Receiver with q = s .* conj(r).
 % This is done analytically, because the sampling
 % rate of the system is too small to calculate exactly enough.
+%A_q = c_r * P_s; % Amplitude of baseband signal
+A_q = [];
+for i=1:1:length(t_jump)
+    A_q = [A_q -(c_r * P_s)*log(rand())]; % [RICHARDS 1999]
+end
 
 [phi_bb] = baseband_phase(f_min, tau, dt, df, T); % get phase of baseband signal
-q = c_r * P_s * exp(1i*(phi_bb - 2*pi*f_D * t_jump)); % baseband signal ...
+q_orig = A_q .* exp(1i*(phi_bb - 2*pi*f_D * t_jump)); % baseband signal ...
     % consisting of attenuation, analytical phase and doppler phase
-
-% add noise  
-% q = awgn(q, 60);
+    
+R_est = [];
+sigma_est = [];
 
 %% Estimation
 
-[q_fft, f_fft] = spektrum(q, N_fft, 1/dt); % Calculate fft and frequency shift
-% find peaks
+% loop measurements
+for i=1:1:k
 
-[peak_y, peak_x] = findpeaks(q_fft, 'NPEAKS', 1, 'SORTSTR', 'descend'); ...
-    % finds highest peak in spectrum
+    q = q_orig + wgn(1, length(q_orig), -80, 'complex'); % add random noise for every measurement
 
-fR = abs(f_fft(:,round(peak_x))); % Get Highest peak freqency
+    [q_fft, f_fft] = spektrum(q, N_fft, 1/dt); % Calculate fft and frequency shift
+    % find peaks
+    [peak_y, peak_x] = findpeaks(q_fft, 'NPEAKS', 1, 'SORTSTR', 'descend'); ...
+        % finds highest peak in spectrum
 
-% Calculate estimated v
+    fR = abs(f_fft(:,round(peak_x))); % Get Highest peak freqency
 
-v_est = v; % (not implemented yet)
-%sigma_est = sigma; % (not implemented yet)
+    % Calculate estimated v
 
-% Calculate estimated R
-% (we ware still assuming v = 0)
+    v_est = v; % (not implemented yet)
 
-kappa = fR * dt*n; % calculate spatial frequency
-R_est = c/(2*B)* kappa; % estimate R
+    % Calculate estimated R
+    % (we ware still assuming v = 0)
 
-% RCS Estimation
+    kappa = fR * dt*n; % calculate spatial frequency
+    R_est = [R_est c/(2*B)* kappa]; % estimate current R
 
-sigma_est = estimate_sigma(q, 1/dt, P_s, (4*pi)^3/(G_R*G_T*lambda^2), R_est);
+    % RCS Estimation
+
+    sigma_est = [sigma_est estimate_sigma(q, 1/dt, P_s, (4*pi)^3/(G_R*G_T*lambda^2), R_est(i))];
+
+end
+
+%RCS Debug plot
+subplot(1,2,1);
+plot(R_est,'o')
+hold on
+plot(repmat(R, length(R_est)));
+hold off
+title('Estimated R Values');
+ylabel('R [m]');
+xlabel('Measurement number');
+
+%RCS Debug plot
+subplot(1,2,2);
+plot(sigma_est,'o')
+hold on
+plot(repmat(sigma, length(sigma_est)));
+hold off
+title('Estimated RCS Values');
+ylabel('\sigma [m^2]');
+xlabel('Measurement number');
+
+% Calculate average MLE
+
+R_est = mean(R_est);
+sigma_est = mean(sigma_est);
 
 % Error calculation
 if R == 0
@@ -140,29 +176,29 @@ error_sigma = num2str((sigma_est-sigma)/sigma*100);
 
 %figure(fig+1);
 
-%plot abs
-% subplot(3,1,1);
-% plot(t, abs(q));
+% %plot abs
+% subplot(2,1,1);
+% plot(t_jump, abs(q));
 % title('baseband signal abs');
 % xlabel('t/s');
 % ylabel('Ampl.');
 % 
-% plot phase
-subplot(2,1,1);
-stem(t_jump, unwrap(angle(q)), '-x');
-title('baseband signal phase');
-xlabel('t/s');
-ylabel('Phase/rad');
-
-% PSD Plot
-subplot(2,1,2);
-x_fa = 0:1/dt/N_fft:1/dt-1/dt/N_fft;
-plot(f_fft, q_fft.^2, '.-')
-%axis([-fn fn 0 (max(y)-min(y))/4*1.1])
-title('power spectral density')
-ylabel('Amplitude')
-xlabel(['Auflösung: ',num2str(1/dt/N_fft),' Hz Frequenz in Hz'])
-grid
+% %plot phase
+% subplot(2,1,2);
+% stem(t_jump, unwrap(angle(q)), '-x');
+% title('baseband signal phase');
+% xlabel('t/s');
+% ylabel('Phase/rad');
+% 
+% % PSD Plot
+% subplot(2,1,2);
+% x_fa = 0:1/dt/N_fft:1/dt-1/dt/N_fft;
+% plot(f_fft, q_fft.^2, '.-')
+% %axis([-fn fn 0 (max(y)-min(y))/4*1.1])
+% title('power spectral density')
+% ylabel('Amplitude')
+% xlabel(['Auflösung: ',num2str(1/dt/N_fft),' Hz Frequenz in Hz'])
+% grid
 
 % SFCW frequency plot
 % figure(fig+1);
