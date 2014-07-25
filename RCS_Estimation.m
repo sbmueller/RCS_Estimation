@@ -18,6 +18,7 @@ c = 299792458; % speed of light [m/s]
 R = 15;     % distance radar - target [m]
 v = 0;      % speed of target [m/s] (v>0 -> moves towards receiver)
 sigma = 5;  % radar cross section [m^2] >0
+swerling = 1; % used swerling model (1 or 3)
 
 % radar constants
 
@@ -27,12 +28,13 @@ B = 500e6;     % sweep frequency [Hz]
 T_f = 10e-3;  % sweep time per flank [s]
 n = 128;      % frequency steps per flank [1]
 
-P_s = 100;  % transmission power [W]
+P_s = 100e-3;  % transmission power [W]
+P_n = 1e-9; % noise power [W]
 G_T = 20;  % transmitting antenna gain [dBi]
 G_R = 20;  % receiving antenna gain [dBi]
 
 N_fft = 4096; % FFT Size (big is good)
-k = 100; % Number of measurements
+k = 10; % Number of measurements
 
 %% Calculate remaining data
 
@@ -54,6 +56,7 @@ df = B/n;   % frequency step
 dt = T_f/n; % time step
 R_max = c/(4*df)    % maximum unambiguous distance
 dR = c/(2*B)    % minimum resolvable distance
+
 t_jump = dt:dt:T; % create time vector of sampling points
 
 %% check values
@@ -91,24 +94,32 @@ end
 % This is done analytically, because the sampling
 % rate of the system is too small to calculate exactly enough.
 %A_q = c_r * P_s; % Amplitude of baseband signal
-A_q = [];
-for i=1:1:length(t_jump)
-    A_q = [A_q -(c_r * P_s)*log(rand())]; % [RICHARDS 1999]
-end
 
-[phi_bb] = baseband_phase(f_min, tau, dt, df, T); % get phase of baseband signal
-q_orig = A_q .* exp(1i*(phi_bb - 2*pi*f_D * t_jump)); % baseband signal ...
-    % consisting of attenuation, analytical phase and doppler phase
-    
 R_est = [];
 sigma_est = [];
 
+[phi_bb] = baseband_phase(f_min, tau, dt, df, T); % get phase of baseband signal
 %% Estimation
 
 % loop measurements
 for i=1:1:k
+    
+    % Create swerling models for received power
 
-    q = q_orig + wgn(1, length(q_orig), -80, 'complex'); % add random noise for every measurement
+    if swerling == 1
+        P_r = exprnd(c_r^2 * P_s, 1, length(t_jump)); % random exponential values
+    elseif swerling == 3
+        P_r = chi2rnd(3, 1, length(t_jump)) * (c_r^2 * P_s)/3; % random chi square values
+    else
+        P_r = c_r^2 * P_s; % case no swerling (0)
+    end
+
+    A_q = sqrt(P_r .* P_s); % calculate baseband amplitude
+    
+    q_orig = A_q .* exp(1i*(phi_bb - 2*pi*f_D * t_jump)); % baseband signal ...
+        % consisting of attenuation, analytical phase and doppler phase
+    
+    q = q_orig + wgn(1, length(q_orig), pow2db(P_n), 'complex'); % add random noise for every measurement
 
     [q_fft, f_fft] = spektrum(q, N_fft, 1/dt); % Calculate fft and frequency shift
     % find peaks
@@ -129,7 +140,7 @@ for i=1:1:k
 
     % RCS Estimation
 
-    sigma_est = [sigma_est estimate_sigma(q, 1/dt, P_s, (4*pi)^3/(G_R*G_T*lambda^2), R_est(i))];
+    sigma_est = [sigma_est estimate_sigma(q, P_s, (4*pi)^3/(G_R*G_T*lambda^2), R_est(i))];
 
 end
 
@@ -175,22 +186,22 @@ error_sigma = num2str((sigma_est-sigma)/sigma*100);
 %% Plot
 
 %figure(fig+1);
-
+% 
 % %plot abs
 % subplot(2,1,1);
 % plot(t_jump, abs(q));
 % title('baseband signal abs');
 % xlabel('t/s');
 % ylabel('Ampl.');
-% 
+% %
 % %plot phase
 % subplot(2,1,2);
 % stem(t_jump, unwrap(angle(q)), '-x');
 % title('baseband signal phase');
 % xlabel('t/s');
 % ylabel('Phase/rad');
-% 
-% % PSD Plot
+% % 
+% PSD Plot
 % subplot(2,1,2);
 % x_fa = 0:1/dt/N_fft:1/dt-1/dt/N_fft;
 % plot(f_fft, q_fft.^2, '.-')
